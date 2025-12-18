@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XOR Crib Dragging Tool</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>XOR Crib Dragging Tool</h1>
+
+        <div class="how-it-works">
+            <button id="how-it-works-toggle" class="how-it-works-toggle">
+                <span>📖 How It Works</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div id="how-it-works-content" class="how-it-works-content hidden">
+                <h2>Overview</h2>
+                <p>This tool performs XOR crib dragging analysis on ciphertext that may have been rotated and/or XORed with a repeating key. It helps identify the correct transformation order and parameters by testing various configurations and highlighting bytes that match expected plaintext patterns.</p>
+
+                <h2>How It Works</h2>
+                <ol>
+                    <li><strong>Input Processing</strong>: The tool accepts ciphertext and an XOR key in multiple formats (base64, hex, decimal, octal, ASCII, binary).</li>
+                    <li><strong>Cache Building</strong>: The XOR key is used to build a cache by XORing each key byte with common ASCII characters (A-Z, a-z, 0-9). This creates a lookup table of possible XOR result bytes.</li>
+                    <li><strong>Matrix Transformation</strong> (optional): The ciphertext bits can be reorganized into a matrix of various dimensions and read in different patterns:
+                        <ul>
+                            <li><strong>Standard</strong>: Read row by row (top-left to bottom-right)</li>
+                            <li><strong>Spin Right</strong>: Read columns from bottom to top (left to right)</li>
+                            <li><strong>Spin Left</strong>: Read columns from right to left (top to bottom)</li>
+                        </ul>
+                    </li>
+                    <li><strong>Rotation Analysis</strong>: The tool tests two scenarios:
+                        <ul>
+                            <li><strong>Scenario 1: Rotated then XORed</strong>: Tests if the ciphertext was rotated first, then XORed</li>
+                            <li><strong>Scenario 2: XORed then Rotated</strong>: Tests if the ciphertext was XORed first, then rotated</li>
+                        </ul>
+                        For each scenario, it tests rotations of 0-7 bits.
+                    </li>
+                    <li><strong>Match Detection</strong>: After applying transformations, the tool checks each byte against the cache. If a byte matches a cached value, it means that byte could be the result of XORing a common ASCII character with the key.</li>
+                    <li><strong>Results</strong>: Results show match percentages, and you can hover over highlighted bytes to see which plaintext characters could produce that byte value.</li>
+                </ol>
+
+                <h2>Features</h2>
+                <ul>
+                    <li><strong>Manual Mode</strong>: Select specific matrix dimensions, reading mode, and view results for each rotation</li>
+                    <li><strong>Auto Mode</strong>: Automatically tests all combinations and ranks them by match percentage</li>
+                    <li><strong>Matrix Dimensions</strong>: Automatically calculates all possible matrix dimensions based on bit count</li>
+                    <li><strong>Real-time Updates</strong>: Matrix dimensions update as you type</li>
+                    <li><strong>Reverse Text</strong>: Quickly reverse the ciphertext input</li>
+                    <li><strong>Interactive Highlights</strong>: Hover over highlighted bytes to see candidate plaintext characters</li>
+                </ul>
+
+                <h2>Usage Tips</h2>
+                <ul>
+                    <li>Start with <strong>Auto Mode</strong> to quickly find the best configurations</li>
+                    <li>Look for configurations with high match percentages (>10-20%)</li>
+                    <li>Use the "View Details" button to see the full binary output with highlights</li>
+                    <li>Try different matrix dimensions if the bit count has many factors</li>
+                    <li>The tool works best when the plaintext contains common ASCII characters (letters and numbers)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label for="ciphertext">Ciphertext:</label>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <select id="ciphertext-format" style="flex: 1;">
+                        <option value="auto">Auto-detect</option>
+                        <option value="base64">Base64</option>
+                        <option value="hex">Hex</option>
+                        <option value="decimal">Decimal</option>
+                        <option value="octal">Octal</option>
+                        <option value="ascii">ASCII</option>
+                        <option value="binary">Binary</option>
+                    </select>
+                    <button id="reverse-ciphertext-btn" class="reverse-btn" title="Reverse the ciphertext">↺ Reverse</button>
+                </div>
+                <textarea id="ciphertext" placeholder="Enter ciphertext..."></textarea>
+            </div>
+
+            <div class="input-group">
+                <label for="xor-key">XOR Key:</label>
+                <select id="key-format">
+                    <option value="auto">Auto-detect</option>
+                    <option value="base64">Base64</option>
+                    <option value="hex">Hex</option>
+                    <option value="decimal">Decimal</option>
+                    <option value="octal">Octal</option>
+                    <option value="ascii">ASCII</option>
+                    <option value="binary">Binary</option>
+                </select>
+                <textarea id="xor-key" placeholder="Enter XOR key..."></textarea>
+            </div>
+
+            <div class="input-group">
+                <label for="matrix-dimensions">Matrix Dimensions (Rows x Cols):</label>
+                <select id="matrix-dimensions">
+                    <option value="none">No matrix transformation</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="matrix-mode">Matrix Reading Mode:</label>
+                <select id="matrix-mode">
+                    <option value="standard">Standard (top-left to bottom-right)</option>
+                    <option value="spin-right">Spin Right (bottom-left to top-right)</option>
+                    <option value="spin-left">Spin Left (top-right to bottom-left)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button id="process-btn" style="flex: 1;">Process</button>
+                <button id="auto-mode-btn" class="auto-mode-btn">🔍 Auto Mode</button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div id="collision-warning" class="warning hidden"></div>
+            <div id="cache-info" class="info hidden"></div>
+        </div>
+
+        <div class="output-section">
+            <label for="output">Rotation Analysis Results:</label>
+            <div id="output" class="output-area"></div>
+        </div>
+
+        <div id="popover" class="popover hidden"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
