@@ -229,12 +229,16 @@ function analyzeRotatedThenXORed(ciphertextBytes, key, cache, matrixMode = 'stan
             const keyByte = key[i % key.length];
             const xoredBytesSet = cache.keyByteToXoredBytes.get(keyByte);
 
-            if (xoredBytesSet && xoredBytesSet.has(byte)) {
+            // After XORing ciphertext with key, we get plaintext bytes
+            // Check if this plaintext byte, when XORed with the key byte, produces a value in our cache
+            // This means: if (plaintextByte ^ keyByte) is in the cache, then plaintextByte is a common ASCII char
+            const expectedXoredByte = byte ^ keyByte;
+            if (xoredBytesSet && xoredBytesSet.has(expectedXoredByte)) {
                 matchCount++;
                 matchingBytes.push({
                     index: i,
                     byte: byte,
-                    candidates: cache.xoredByteToPlaintext.get(byte) || []
+                    candidates: cache.xoredByteToPlaintext.get(expectedXoredByte) || []
                 });
             }
         }
@@ -275,12 +279,16 @@ function analyzeXORedThenRotated(ciphertextBytes, key, cache, matrixMode = 'stan
             const keyByte = key[i % key.length];
             const xoredBytesSet = cache.keyByteToXoredBytes.get(keyByte);
 
-            if (xoredBytesSet && xoredBytesSet.has(byte)) {
+            // After XORing ciphertext with key, we get plaintext bytes
+            // Check if this plaintext byte, when XORed with the key byte, produces a value in our cache
+            // This means: if (plaintextByte ^ keyByte) is in the cache, then plaintextByte is a common ASCII char
+            const expectedXoredByte = byte ^ keyByte;
+            if (xoredBytesSet && xoredBytesSet.has(expectedXoredByte)) {
                 matchCount++;
                 matchingBytes.push({
                     index: i,
                     byte: byte,
-                    candidates: cache.xoredByteToPlaintext.get(byte) || []
+                    candidates: cache.xoredByteToPlaintext.get(expectedXoredByte) || []
                 });
             }
         }
@@ -693,7 +701,10 @@ async function runAutoMode() {
                                 const byte = finalBytes[i];
                                 const keyByte = key[i % key.length];
                                 const xoredBytesSet = cache.keyByteToXoredBytes.get(keyByte);
-                                if (xoredBytesSet && xoredBytesSet.has(byte)) {
+                                // After XORing ciphertext with key, we get plaintext bytes
+                                // Check if (plaintextByte ^ keyByte) is in the cache
+                                const expectedXoredByte = byte ^ keyByte;
+                                if (xoredBytesSet && xoredBytesSet.has(expectedXoredByte)) {
                                     matchCount++;
                                 }
                             }
@@ -837,7 +848,10 @@ function viewAutoResult(result, cache, key) {
     result.xoredBytes.forEach((byte, index) => {
         const keyByte = key[index % key.length];
         const xoredBytesSet = cache.keyByteToXoredBytes.get(keyByte);
-        const isMatch = xoredBytesSet && xoredBytesSet.has(byte);
+        // After XORing ciphertext with key, we get plaintext bytes
+        // Check if (plaintextByte ^ keyByte) is in the cache
+        const expectedXoredByte = byte ^ keyByte;
+        const isMatch = xoredBytesSet && xoredBytesSet.has(expectedXoredByte);
 
         const span = document.createElement('span');
         const binary = byte.toString(2).padStart(8, '0');
@@ -847,7 +861,7 @@ function viewAutoResult(result, cache, key) {
         if (isMatch) {
             span.classList.add('highlight');
             span.dataset.byteValue = byte;
-            const candidates = cache.xoredByteToPlaintext.get(byte) || [];
+            const candidates = cache.xoredByteToPlaintext.get(expectedXoredByte) || [];
             span.dataset.candidates = JSON.stringify(candidates);
         }
 
